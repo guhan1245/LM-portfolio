@@ -25,23 +25,23 @@ pipeline {
                 }
             }
         }
+stage('Deploy') {
+    steps {
+        script {
+            echo 'Deploying HTML file...'
+            // Replace 'user@your-server' with your actual SSH user and server address
+            sh 'scp index.html user@192.168.1.100:/var/www/html'  // Replace with your actual server details
 
-        stage('Deploy') {
-            steps {
-                script {
-                    // Here, we deploy the HTML file. For example, copy it to a web server's directory.
-                    echo 'Deploying HTML file...'
-                    // Example: Use SCP to copy the HTML file to the server
-                    sh 'scp index.html user@your-server:/var/www/html'  // Modify as per your server's location
+            // Or if you're using AWS S3 to deploy, use:
+            // sh 'aws s3 cp index.html s3://your-bucket-name/'
 
-                    // If using AWS S3 to deploy:
-                    // sh 'aws s3 cp index.html s3://your-bucket-name/'
-
-                    // You can also copy the file locally if needed
-                    // sh 'cp index.html /desired/local/path/'
-                }
-            }
+            // Local deployment (if needed):
+            // sh 'cp index.html /desired/local/path/'
         }
+    }
+}
+
+      
     }
 
     post {
