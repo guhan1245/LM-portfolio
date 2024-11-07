@@ -1,10 +1,6 @@
 pipeline {
     agent any
 
-    environment {
-        // Set environment variables if needed, e.g., path to credentials or specific build tools
-    }
-
     stages {
         stage('Checkout SCM') {
             steps {
