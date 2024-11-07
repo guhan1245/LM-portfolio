@@ -4,7 +4,7 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                git 'https://github.com/guhan1245/LM-portfolio.git'
+                git branch: 'main', credentialsId: 'e547c381-be07-4433-9edb-a8da4bc2e420', url: 'https://github.com/guhan1245/LM-portfolio.git'
             }
         }
         stage('Build') {
