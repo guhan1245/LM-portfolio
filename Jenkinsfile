@@ -2,52 +2,47 @@ pipeline {
     agent any
 
     environment {
-        // Define any necessary environment variables here
-        // For example, you could define a deployment directory or URL
-        DEPLOY_DIR = '/var/www/html'  // Example deployment directory
+        DEPLOY_HOST = "192.168.1.100"  // IP of the server
+        DEPLOY_USER = "user"  // SSH user
+        DEPLOY_PATH = "/var/www/html"  // Path to deploy HTML file
+        SSH_KEY = credentials('ssh-key-id')  // Add SSH key as a credential in Jenkins
     }
 
     stages {
-        stage('Checkout SCM') {
+        stage('Checkout') {
             steps {
-                script {
-                    // Checkout the code from your GitHub repository
-                    git url: 'https://github.com/guhan1245/LM-portfolio.git', branch: 'main', credentialsId: 'e547c381-be07-4433-9edb-a8da4bc2e420'
-                }
+                echo 'Checking out code from Git repository'
+                checkout scm
             }
         }
 
         stage('Build') {
             steps {
+                echo 'No build steps required for a simple HTML project'
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                echo 'Deploying HTML file to the server'
                 script {
-                    // Since it's just an HTML file, we skip the build process
-                    echo 'No build steps required for a simple HTML project.'
+                    // Set up SSH connection
+                    sh '''
+                    ssh -i $SSH_KEY user@$DEPLOY_HOST "mkdir -p $DEPLOY_PATH"
+                    scp -i $SSH_KEY index.html $DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_PATH
+                    '''
                 }
             }
         }
-stage('Deploy') {
-    steps {
-        script {
-            echo 'Deploying HTML file...'
-            // Replace 'user@your-server' with your actual SSH user and server address
-            sh 'scp index.html user@192.168.1.100:/var/www/html'  // Replace with your actual server details
 
-            // Or if you're using AWS S3 to deploy, use:
-            // sh 'aws s3 cp index.html s3://your-bucket-name/'
-
-            // Local deployment (if needed):
-            // sh 'cp index.html /desired/local/path/'
+        stage('Post Actions') {
+            steps {
+                echo 'Deployment completed'
+            }
         }
-    }
-}
-
-      
     }
 
     post {
-        success {
-            echo 'Deployment completed successfully!'
-        }
         failure {
             echo 'Deployment failed. Please check the logs.'
         }
