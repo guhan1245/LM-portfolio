@@ -2,49 +2,69 @@ pipeline {
     agent any
 
     environment {
-        DEPLOY_HOST = "192.168.1.100"  // IP of the server
-        DEPLOY_USER = "user"  // SSH user
-        DEPLOY_PATH = "/var/www/html"  // Path to deploy HTML file
-        SSH_KEY = credentials('ssh-key-id')  // Add SSH key as a credential in Jenkins
+        // Set Docker image name
+        IMAGE_NAME = 'my-webpage-apache'
+        DOCKER_REGISTRY = 'localhost:5000' // Use local Docker registry, or leave as empty for direct deployment
     }
 
     stages {
-        stage('Checkout') {
+        stage('Clone Repository') {
             steps {
-                echo 'Checking out code from Git repository'
-                checkout scm
+                // Pull the code from GitHub repository
+                git 'https://github.com/your-username/your-repository.git'
             }
         }
-
-        stage('Build') {
+        
+        stage('Build Docker Image') {
             steps {
-                echo 'No build steps required for a simple HTML project'
-            }
-        }
-
-        stage('Deploy') {
-            steps {
-                echo 'Deploying HTML file to the server'
                 script {
-                    // Set up SSH connection
-                    sh '''
-                    ssh -i $SSH_KEY user@$DEPLOY_HOST "mkdir -p $DEPLOY_PATH"
-                    scp -i $SSH_KEY index.html $DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_PATH
-                    '''
+                    // Build the Docker image
+                    sh 'docker build -t ${IMAGE_NAME} .'
                 }
             }
         }
 
-        stage('Post Actions') {
+        stage('Run Docker Container') {
             steps {
-                echo 'Deployment completed'
+                script {
+                    // Stop any running container of the same name
+                    sh 'docker ps -q --filter "name=${IMAGE_NAME}" | xargs -r docker stop'
+                    sh 'docker ps -a -q --filter "name=${IMAGE_NAME}" | xargs -r docker rm'
+                    
+                    // Run the Docker container in detached mode
+                    sh 'docker run -d -p 80:80 --name ${IMAGE_NAME} ${IMAGE_NAME}'
+                }
+            }
+        }
+
+        stage('Push to Docker Registry (Optional)') {
+            when {
+                branch 'main' // Only push to Docker registry on main branch (if using a private registry)
+            }
+            steps {
+                script {
+                    // Push the Docker image to the registry
+                    sh 'docker tag ${IMAGE_NAME} ${DOCKER_REGISTRY}/${IMAGE_NAME}'
+                    sh 'docker push ${DOCKER_REGISTRY}/${IMAGE_NAME}'
+                }
+            }
+        }
+
+        stage('Clean Up') {
+            steps {
+                script {
+                    // Optionally remove the Docker image after deployment
+                    sh 'docker rmi ${IMAGE_NAME}'
+                }
             }
         }
     }
 
     post {
-        failure {
-            echo 'Deployment failed. Please check the logs.'
+        always {
+            // Cleanup after build
+            sh 'docker ps -q --filter "name=${IMAGE_NAME}" | xargs -r docker stop'
+            sh 'docker ps -a -q --filter "name=${IMAGE_NAME}" | xargs -r docker rm'
         }
     }
 }
